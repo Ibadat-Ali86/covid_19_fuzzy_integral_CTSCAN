@@ -1,253 +1,297 @@
-# TopoKD Research Repository
+# TopoLite-KD: Topology-Aware Knowledge Distillation for COVID-19 CT Classification
 
-**Production-oriented, self-contained PyTorch research package for topology-aware knowledge distillation in binary COVID-19 chest CT classification.**
+> ### 🚀 **Live Kaggle Notebook (Run Professionally):**
+> **[Open Live Experiment on Kaggle &rarr;](https://www.kaggle.com/code/ibadatali/topokd-research-finalv)**
 
-**Authors:** Ibadat Ali, Shawaiz Ali, Muhammad Abdullah, Muhammad Usama  
+<div align="center">
+
+[![Kaggle Notebook](https://img.shields.io/badge/Kaggle-Open%20Notebook-20BEFF?style=for-the-badge&logo=kaggle&logoColor=white)](https://www.kaggle.com/code/ibadatali/topokd-research-finalv)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.2%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![GUDHI TDA](https://img.shields.io/badge/TDA-GUDHI%203.9%2B-8A2BE2?style=for-the-badge)](https://gudhi.inria.fr)
+[![Parameters](https://img.shields.io/badge/Parameters-196%2C773-orange?style=for-the-badge)]()
+
+<br/>
+
+**Authors:** Ibadat Ali &nbsp;·&nbsp; Shawaiz Ali &nbsp;·&nbsp; Muhammad Abdullah &nbsp;·&nbsp; Muhammad Usama
+
 **Affiliation:** Department of Computer Science, GIFT University, Gujranwala, Pakistan
 
-> Research software only. The generated predictions are not clinical diagnoses.
+<br/>
 
-## 1. What this repository contains
+> ⚠️ **Research software only.** Model predictions are **not** clinical diagnoses.
 
-This repository consolidates the completed and attempted topology-aware research methods into one reproducible codebase:
+</div>
 
-| Family | Core method | Status in this repository |
-|---|---|---|
-| Standard Custom CNN + TDA | Conventional CNN embedding + fixed persistent-homology descriptor | Complete baseline |
-| TopoLite-KD | Lightweight depthwise-separable CNN + 134-D topology + reliability-aware fusion + EfficientNet-B0 KD | Main complete method |
-| TopoLite-MSF-KD | 144 multi-scale/multi-filtration topology tokens + H0/H1 Transformers + cross-attention + FiLM + routed experts | Complete extended/negative experiment |
-| TopoLite-FKD-SAM | Response KD + feature KD + Sharpness-Aware Minimization | Complete framework; exact archived weights unavailable |
-| TopoFM-Slice-v1 | DINOv2 + learnable topology tokens + bidirectional cross-attention + supervised contrastive learning | Component-faithful slice-level reconstruction |
-| A0–A10 | Visual, topology, fusion, KD, attention, homology, and filtration ablations | Complete configuration suite |
+---
 
-The repository explicitly separates:
+## 🔬 Overview
 
-- **generated experiment outputs** under `results/`;
-- **author-supplied historical records** under `research_records/`;
-- **unknown archived values** documented with `[UPPERCASE_BRACKETS]` in templates.
+**TopoLite-KD** is a lightweight, topology-augmented deep learning framework for binary COVID-19/Non-COVID classification from chest CT scans. It fuses:
 
-Historical values are never injected into generated metrics.
+- **Visual features** — depthwise-separable CNN with Coordinate Attention
+- **Topological features** — 134-D cubical persistent homology descriptors (GUDHI)
+- **Knowledge Distillation** — frozen EfficientNet-B0 teacher at temperature T = 3
 
-## 2. Paper-aligned TopoLite-KD architecture
+---
 
-```text
-Input: grayscale CT slice, 1×224×224
+## 🚀 Live Experiment on Kaggle
 
-VISUAL BRANCH
-  Conv 3×3/s2 + GroupNorm + SiLU, 24 channels
-  Depthwise-separable residual stages: 32 → 48 → 96 → 160
-  Coordinate Attention after stages 2 and 3
-  Global average pooling + projection → 64-D visual embedding
+> The complete experiment — training, evaluation, and ablation studies — was run professionally on **Kaggle GPU** and is publicly available:
 
-TOPOLOGY BRANCH
-  Resize original grayscale image to 64×64
-  Cubical persistence: sublevel I and superlevel 1-I
-  H0 connected components + H1 loops
-  134-D fixed descriptor
-  MLP 134 → 128 → 64
+<div align="center">
 
-FUSION
-  Per-feature reliability gate
-  Weighted visual/topology blend
-  Multiplicative visual–topology interaction
-  64-D fused embedding → binary logit
+### 👉 [https://www.kaggle.com/code/ibadatali/topokd-research-finalv](https://www.kaggle.com/code/ibadatali/topokd-research-finalv)
 
-DISTILLATION
-  EfficientNet-B0 teacher
-  Temperature T=3
-  0.60 fused BCE + 0.30 response KD
-  + 0.05 visual auxiliary BCE + 0.05 topology auxiliary BCE
-```
+*Click to open the live Kaggle notebook with full training logs, metrics, and results.*
 
-The current implementation has **196,773 trainable parameters**, close to the historical approximate count without adding non-functional padding.
+</div>
 
-## 3. Repository layout
-
-```text
-TopoKD_Research_Repository/
-├── README.md
-├── CODEBASE_AUDIT.md
-├── LICENSE
-├── requirements.txt
-├── pyproject.toml
-├── Makefile
-├── train.py
-├── evaluate.py
-├── visualize.py
-├── data_loader.py
-├── utils.py
-├── ablation_studies.py
-├── configs/
-│   ├── base.yaml
-│   ├── baseline_cnn_tda.yaml
-│   ├── topolite_kd.yaml
-│   ├── topolite_msf_kd.yaml
-│   ├── topolite_fkd_sam.yaml
-│   ├── topofm_slice_v1.yaml
-│   ├── archive_override_template.yaml.example
-│   └── ablations/
-│       ├── A0_visual_only.yaml
-│       ├── A1_tda_only.yaml
-│       ├── A2_concat.yaml
-│       ├── A3_fixed_fusion.yaml
-│       ├── A4_gated_no_kd.yaml
-│       ├── A5_visual_kd.yaml
-│       ├── A6_full_topolite_kd.yaml
-│       ├── A7_no_coordinate_attention.yaml
-│       ├── A8_h0_only.yaml
-│       ├── A9_h1_only.yaml
-│       ├── A10_sublevel_only.yaml
-│       └── A10_superlevel_only.yaml
-├── src/topokd/
-│   ├── data/                 # discovery, hashing, splitting, transforms, datasets
-│   ├── topology/             # cubical PH, 134-D descriptors, 144-token extraction, cache
-│   ├── models/               # TopoLite, MSF, TopoFM, teacher, blocks, fusion
-│   ├── losses/               # BCE, response KD, feature KD, SupCon
-│   ├── optim/                # AdamW/SGD/SAM, schedulers
-│   ├── engine/               # training, inference, calibration, final evaluation
-│   ├── evaluation/           # metrics, bootstrap CIs, paired significance tests
-│   ├── visualization/        # curves, diagnostics, Grad-CAM
-│   └── utils/                # seeds, I/O, logging, hashes, checkpoints, environment
-├── scripts/
-│   ├── run_pipeline.py
-│   ├── prepare_manifest.py
-│   ├── build_tda_cache.py
-│   ├── train_teacher.py
-│   ├── train.py
-│   ├── evaluate.py
-│   ├── visualize.py
-│   ├── infer.py
-│   ├── run_ablation_suite.py
-│   ├── aggregate_seeds.py
-│   ├── compare_models.py
-│   ├── profile_model.py
-│   ├── export_paper_tables.py
-│   ├── audit_run.py
-│   ├── package_run.py
-│   └── validate_install.py
-├── research_records/         # archival results; never used as generated predictions
-├── docs/
-├── tests/
-├── notebooks/Kaggle_Quickstart.ipynb
-└── results/                  # generated run artifacts
-```
-
-## 4. Installation
-
-### Kaggle
+**Required dataset:** [SARS-CoV-2 CT-Scan Dataset by Plameneduardo](https://www.kaggle.com/datasets/plameneduardo/sarscov2-ctscan-dataset) — attach to the notebook session before running.
 
 ```bash
-cd /kaggle/working/TopoKD_Research_Repository
-python -m pip install -r requirements.txt
-python -m pip install -e .
-```
-
-### Colab or local Linux
-
-```bash
-git clone [REPOSITORY_URL]
-cd TopoKD_Research_Repository
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
-```
-
-The default Kaggle dataset root is already configured as:
-
-```text
-/kaggle/input/datasets/plameneduardo/sarscov2-ctscan-dataset
-```
-
-Override any configuration value without editing source code:
-
-```bash
-python scripts/prepare_manifest.py \
-  --config configs/topolite_kd.yaml \
-  --set data.root=/[DATASET_DIRECTORY]
-```
-
-## 5. End-to-end reproducible workflow
-
-Run the complete dependency-aware workflow with one command:
-
-```bash
+# Inside the Kaggle notebook environment
+cd /kaggle/working/covid_19_fuzzy_integral_CTSCAN
+pip install -r requirements.txt
+pip install -e .
 python scripts/run_pipeline.py --config configs/topolite_kd.yaml --device cuda
 ```
 
-It reuses an existing frozen manifest, builds the matching topology cache, trains the teacher only when KD is enabled and no checkpoint exists, and then trains/evaluates the student.
+---
 
-### 5.1 Prepare or restore the frozen manifest
+## 🏗️ Architecture
 
-For exact reproduction, restore the archived file:
+<div align="center">
 
-```text
-artifacts/split_manifest.csv
+![TopoLite-KD Full Pipeline Architecture](docs/architecture.png)
+
+*Figure 1 — TopoLite-KD full pipeline.*
+**(Blue / Top)** Lightweight Visual Branch: Depthwise-Separable CNN + Coordinate Attention → 64-D visual embedding.*
+**(Green / Middle)** Topology Branch: Cubical Persistent Homology (GUDHI) → 134-D descriptor → MLP → 64-D topology embedding.*
+**(Purple / Right)** Reliability-Aware Fusion: per-feature gate + multiplicative interaction → binary classifier.*
+**(Orange / Bottom, dashed)** EfficientNet-B0 Teacher: active during training only, provides soft targets for Knowledge Distillation.*
+
+</div>
+
+### Stage-by-Stage Breakdown
+
+| Stage | Component | Output |
+|---|---|---|
+| **Input** | Grayscale CT slice | `1 × 224 × 224` |
+| **Stem** | Conv 3×3/s2 + GroupNorm + SiLU | `24 ch` |
+| **DS-Res Stages** | Depthwise-separable residual blocks | `32 → 48 → 96 → 160 ch` |
+| **Coordinate Attention** | Spatial + channel attention (after stages 2 & 3) | injected in-place |
+| **Visual Embedding** | Global Avg Pool + Linear | **`64-D`** |
+| **Topo Resize** | Grayscale → 64×64 → normalize `[0,1]` | `64 × 64` |
+| **Cubical Persistence** | Sublevel + Superlevel filtrations via GUDHI | H0 & H1 barcodes |
+| **Fixed Descriptor** | Lifetime statistics + Betti counts | **`134-D`** |
+| **Standardization** | Train-split μ/σ fit only — no val/test leakage | `134-D normalized` |
+| **MLP Encoder** | 134 → 128 → 64 | **`64-D`** |
+| **Reliability-Aware Fusion** | Per-feature gate `g = σ(MLP([a;b]))` + multiplicative blend | **`64-D fused`** |
+| **Binary Classifier** | Linear 64→1 + Sigmoid | `p ∈ [0, 1]` |
+| **Teacher** *(train only)* | EfficientNet-B0, frozen, temperature `T = 3` | soft targets `q_T` |
+
+**Total trainable parameters: `196,773`**
+
+### Training Objective
+
+```
+ℒ = 0.60 · BCE(z_f,    y)    ← main supervised loss on fused head
+  + 0.30 · KD(z_f,    z_T)   ← response distillation from EfficientNet-B0 teacher
+  + 0.05 · BCE(z_vis,  y)    ← visual auxiliary head
+  + 0.05 · BCE(z_topo, y)    ← topology auxiliary head
 ```
 
-To generate a new leakage-audited split:
+---
+
+## 📋 Method Suite
+
+| Family | Core Method | Status |
+|---|---|---|
+| Standard CNN + TDA | Conventional CNN + fixed persistent-homology descriptor | ✅ Complete baseline |
+| **TopoLite-KD** | DS-CNN + 134-D topology + reliability-aware fusion + EfficientNet-B0 KD | ✅ **Main method** |
+| TopoLite-MSF-KD | 144-token multi-scale filtration + H0/H1 Transformers + FiLM | ✅ Complete (negative experiment) |
+| TopoLite-FKD-SAM | Response-KD + Feature-KD + Sharpness-Aware Minimization | ✅ Framework complete |
+| TopoFM-Slice-v1 | DINOv2 + learnable topology tokens + bidirectional cross-attention | ✅ Slice-level reconstruction |
+| A0–A10 Ablations | Visual, topology, fusion, KD, attention, homology, filtration variants | ✅ Full 12-config suite |
+
+---
+
+## 📂 Repository Structure
+
+```
+covid_19_fuzzy_integral_CTSCAN/
+│
+├── covid-19.ipynb                         ← Original fuzzy-integral CNN baseline notebook
+├── README.md                              ← This file
+├── CITATION.cff                           ← Machine-readable citation
+├── CODEBASE_AUDIT.md                      ← Provenance matrix: confirmed / reconstructed / untested
+├── LICENSE                                ← Apache License 2.0
+├── requirements.txt                       ← Full pinned dependency list
+├── topokd_kaggle_requirements.txt         ← Kaggle-specific requirements (torch pre-installed)
+├── pyproject.toml                         ← Package build config + CLI entry-points
+├── Makefile                               ← install / test / docs / lint shortcuts
+│
+├── docs/
+│   └── architecture.png                   ← Full pipeline architecture diagram (Figure 1 above)
+│
+├── configs/                               ← YAML experiment configurations
+│   ├── base.yaml                          ← Shared defaults: LR, batch size, epochs, paths
+│   ├── topolite_kd.yaml                   ← ★ MAIN MODEL: full TopoLite-KD
+│   ├── baseline_cnn_tda.yaml              ← Baseline: standard CNN + fixed TDA descriptor
+│   ├── topolite_msf_kd.yaml               ← Extended: 144-token multi-scale filtration
+│   ├── topolite_fkd_sam.yaml              ← Extension: feature-KD + SAM optimizer
+│   ├── topofm_slice_v1.yaml               ← DINOv2 + learnable topology tokens
+│   ├── archive_override_template.yaml.example
+│   └── ablations/                         ← A0–A10 ablation configs
+│       ├── A0_visual_only.yaml            ← No topology branch
+│       ├── A1_tda_only.yaml               ← No visual branch
+│       ├── A2_concat.yaml                 ← Simple concatenation fusion (no gate)
+│       ├── A3_fixed_fusion.yaml           ← Fixed-weight fusion
+│       ├── A4_gated_no_kd.yaml            ← Gated fusion, no distillation
+│       ├── A5_visual_kd.yaml              ← KD on visual branch only
+│       ├── A6_full_topolite_kd.yaml       ← Full model (ablation reference)
+│       ├── A7_no_coordinate_attention.yaml
+│       ├── A8_h0_only.yaml               ← Topology: connected components only
+│       ├── A9_h1_only.yaml               ← Topology: loops only
+│       ├── A10_sublevel_only.yaml
+│       └── A10_superlevel_only.yaml
+│
+├── src/topokd/                            ← Core installable Python package
+│   ├── cli.py                             ← topokd-train / topokd-evaluate / topokd-infer
+│   ├── config.py                          ← Config loader, merger, CLI --set override handler
+│   ├── data/                              ← Discovery, SHA-256 hashing, stratified splits, transforms
+│   ├── topology/                          ← Cubical PH, 134-D descriptor, 144-token extractor, cache
+│   ├── models/                            ← TopoLite, MSF, TopoFM, EfficientNet-B0 teacher, fusion
+│   ├── losses/                            ← BCE, response-KD, feature-KD, supervised contrastive loss
+│   ├── optim/                             ← AdamW / SGD / SAM wrappers, LR schedulers
+│   ├── engine/                            ← Training loop, inference, temperature calibration, eval
+│   ├── evaluation/                        ← All metrics, bootstrap CIs, paired McNemar tests
+│   ├── visualization/                     ← Loss/metric curves, Grad-CAM, calibration plots
+│   └── utils/                             ← Seeds, I/O, logging, checkpoint management, env capture
+│
+├── scripts/                               ← Runnable CLI scripts
+│   ├── run_pipeline.py                    ← ★ ONE-COMMAND end-to-end pipeline
+│   ├── prepare_manifest.py                ← Frozen, leakage-audited train/val/test split builder
+│   ├── build_tda_cache.py                 ← Precompute topology descriptors + train-only standardizer
+│   ├── train_teacher.py                   ← Train EfficientNet-B0 teacher
+│   ├── train.py                           ← Train any student model
+│   ├── evaluate.py                        ← Evaluate checkpoint on frozen test split
+│   ├── visualize.py                       ← Grad-CAM + diagnostic figure generation
+│   ├── infer.py                           ← Single-image or folder inference
+│   ├── run_ablation_suite.py              ← Run A0–A10 across multiple seeds
+│   ├── aggregate_seeds.py                 ← Aggregate multi-seed → mean ± std CSV
+│   ├── compare_models.py                  ← McNemar + bootstrap AUROC comparison
+│   ├── profile_model.py                   ← Latency, throughput, peak CUDA memory
+│   ├── export_paper_tables.py             ← Export LaTeX/CSV tables for paper
+│   ├── audit_run.py                       ← Verify all required artifacts in a run dir
+│   ├── package_run.py                     ← Archive run with checksums
+│   └── validate_install.py               ← Smoke-test (synthetic 32×32, 1 epoch, no GPU needed)
+│
+├── notebooks/
+│   └── Kaggle_Quickstart.ipynb            ← Minimal Kaggle bootstrap notebook
+│
+├── results/                               ← Generated outputs (git-ignored; populated at runtime)
+│   └── [experiment]/seed_[N]/
+│       ├── resolved_config.yaml
+│       ├── checkpoints/best.pt
+│       ├── logs/run.log + history.csv
+│       ├── metrics/test_metrics.json
+│       ├── predictions/test_predictions.csv
+│       └── figures/                       ← ROC, PR, confusion matrix, Grad-CAM, etc.
+│
+├── research_records/                      ← Author archival records (NOT generated results)
+│   └── historical_results.yaml
+│
+└── artifacts/                             ← Frozen pipeline artifacts
+    ├── split_manifest.csv                 ← Frozen train/val/test split (exact reproduction)
+    └── teacher_best.pt                    ← Trained EfficientNet-B0 teacher checkpoint
+```
+
+---
+
+## 🖥️ Local Setup
+
+### Prerequisites
+
+| Requirement | Version | Notes |
+|---|---|---|
+| Python | ≥ 3.10 | |
+| PyTorch | ≥ 2.2 | CUDA 11.8 or 12.1 recommended |
+| GUDHI | ≥ 3.9 | Topological data analysis |
+| CUDA GPU | Any | Strongly recommended for training |
+
+### Install
+
+```bash
+# Clone the repository
+git clone https://github.com/Ibadat-Ali86/covid_19_fuzzy_integral_CTSCAN.git
+cd covid_19_fuzzy_integral_CTSCAN
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+
+# Smoke-test (no GPU, synthetic data, ~30 seconds)
+python scripts/validate_install.py --config configs/topolite_kd.yaml --set data.image_size=32
+```
+
+### Dataset Setup
+
+```bash
+# Download SARS-CoV-2 CT-Scan Dataset, then:
+python scripts/prepare_manifest.py \
+  --config configs/topolite_kd.yaml \
+  --set data.root=/path/to/sarscov2-ctscan-dataset
+```
+
+---
+
+## 🔄 Step-by-Step Reproducible Workflow
+
+### Step 1 — Frozen data split (leakage-audited)
 
 ```bash
 python scripts/prepare_manifest.py --config configs/topolite_kd.yaml
 ```
 
-The command:
+> For **exact paper reproduction**, restore `artifacts/split_manifest.csv` — do not regenerate.
 
-- discovers supported image files recursively;
-- computes SHA-256 hashes;
-- stops on cross-label duplicate conflicts;
-- removes exact same-label duplicates when configured;
-- creates stratified train/validation/test assignments;
-- performs patient-group splitting when `data.patient_id_regex` is supplied;
-- refuses to overwrite an existing frozen manifest unless explicitly forced.
-
-### 5.2 Precompute topology and fit train-only standardization
+### Step 2 — Precompute topology cache
 
 ```bash
 python scripts/build_tda_cache.py --config configs/topolite_kd.yaml
 ```
 
-The topology cache path is configuration-hashed. Descriptor mean and standard deviation are fitted **only on the training split** and reused unchanged for validation and test samples.
+Computes 134-D descriptors. Fits μ/σ standardizer on **training split only**.
 
-For the 144-token experiment:
-
-```bash
-python scripts/build_tda_cache.py --config configs/topolite_msf_kd.yaml
-```
-
-### 5.3 Train the EfficientNet-B0 teacher
+### Step 3 — Train EfficientNet-B0 teacher
 
 ```bash
 python scripts/train_teacher.py --config configs/topolite_kd.yaml
+# → artifacts/teacher_best.pt
 ```
 
-Expected checkpoint location:
-
-```text
-artifacts/teacher_best.pt
-```
-
-For offline ImageNet initialization, set `model.teacher.backbone_checkpoint=/[EFFICIENTNET_B0_WEIGHTS_FILE]`; alternatively attach the archived trained teacher checkpoint.
-
-KD-enabled experiments stop with a clear error if the teacher checkpoint is missing. Random-teacher distillation is not allowed.
-
-### 5.4 Train a student model
+### Step 4 — Train student model
 
 ```bash
+# Main method
 python scripts/train.py --config configs/topolite_kd.yaml
-```
 
-Other implemented techniques:
-
-```bash
+# Alternatives
 python scripts/train.py --config configs/baseline_cnn_tda.yaml
 python scripts/train.py --config configs/topolite_msf_kd.yaml
 python scripts/train.py --config configs/topolite_fkd_sam.yaml
 python scripts/train.py --config configs/topofm_slice_v1.yaml
 ```
 
-### 5.5 Evaluate a checkpoint
+### Step 5 — Evaluate on frozen test split
 
 ```bash
 python scripts/evaluate.py \
@@ -255,9 +299,9 @@ python scripts/evaluate.py \
   --checkpoint results/topolite_kd/seed_42/checkpoints/best.pt
 ```
 
-Temperature scaling and decision-threshold selection are fitted on validation predictions only. The frozen test split is evaluated once with those fixed values.
+Temperature scaling and threshold selection are fitted on **validation** predictions only. Test split is evaluated once with those fixed values.
 
-### 5.6 Generate qualitative explanations
+### Step 6 — Grad-CAM explanations
 
 ```bash
 python scripts/visualize.py \
@@ -265,190 +309,143 @@ python scripts/visualize.py \
   --checkpoint results/topolite_kd/seed_42/checkpoints/best.pt
 ```
 
-The visual branch supports class-targeted Grad-CAM, with confident correct cases, errors, and uncertain examples selected from the frozen test predictions.
-
-### 5.7 Run the complete ablation matrix
+### Step 7 — Full ablation matrix (A0–A10)
 
 ```bash
 python ablation_studies.py \
   --config-dir configs/ablations \
   --seeds 42 1337 2026 3407 9001 \
   --continue-on-error
-```
 
-Aggregate seed-level results and export paper tables:
-
-```bash
 python scripts/aggregate_seeds.py
 python scripts/export_paper_tables.py
 ```
 
-## 6. TopoFM-Slice-v1 offline setup
-
-`configs/topofm_slice_v1.yaml` uses the official DINOv2 torch.hub entrypoint. For an offline Kaggle session, attach a local DINOv2 repository and checkpoint:
+### Or — run everything at once
 
 ```bash
-python scripts/train.py \
-  --config configs/topofm_slice_v1.yaml \
-  --set model.dinov2.repository_path=/kaggle/input/[DINOV2_REPOSITORY_DIRECTORY] \
-  --set model.dinov2.checkpoint=/kaggle/input/[DINOV2_CHECKPOINT_FILE]
+python scripts/run_pipeline.py --config configs/topolite_kd.yaml --device cuda
 ```
 
-The completed archived run was slice-level. The following remain disabled and must not be claimed as tested: patient-level 2.5D aggregation, VREx, domain-adversarial learning, soft masks, external validation, and ensembling.
+---
 
-## 7. Outputs saved automatically
+## 🧪 Ablation Study Map
 
-Each run is isolated under:
+| ID | Name | What Is Ablated |
+|---|---|---|
+| A0 | Visual-only | No topology branch |
+| A1 | TDA-only | No visual branch |
+| A2 | Concat fusion | No reliability gate; plain concatenation |
+| A3 | Fixed fusion | Fixed-weight blend; no learned gate |
+| A4 | Gated, no KD | Full gated fusion; no distillation |
+| A5 | Visual KD | Distillation on visual branch only |
+| **A6** | **Full TopoLite-KD** | **Complete model — ablation reference** |
+| A7 | No Coord. Attention | CA modules removed from visual branch |
+| A8 | H0 only | Connected components only |
+| A9 | H1 only | Loops only |
+| A10a | Sublevel only | One filtration direction |
+| A10b | Superlevel only | Opposite filtration direction |
 
-```text
-results/[EXPERIMENT_NAME]/seed_[SEED]/
-├── resolved_config.yaml
-├── checkpoints/
-│   ├── best.pt
-│   ├── last.pt
-│   └── epoch_[EPOCH].pt             # when periodic saving is enabled
-├── logs/
-│   ├── run.log
-│   ├── history.csv
-│   ├── environment.json
-│   ├── pip_freeze.txt
-│   └── tensorboard/
-├── metrics/
-│   ├── calibration.json
-│   ├── validation_metrics.json
-│   ├── test_metrics.json
-│   └── test_bootstrap_ci.json
-├── predictions/
-│   ├── validation_predictions.csv
-│   └── test_predictions.csv
-├── figures/
-│   ├── loss_curves.png
-│   ├── validation_metrics.png
-│   ├── learning_rate.png
-│   ├── confusion_matrix.png
-│   ├── roc_curve.png
-│   ├── precision_recall_curve.png
-│   ├── calibration_curve.png
-│   ├── probability_histogram.png
-│   ├── threshold_analysis.png
-│   ├── fusion_gate_distribution.png       # gated models
-│   ├── router_expert_utilization.png      # routed models
-│   └── curve_data/
-│       ├── roc_curve.csv
-│       ├── precision_recall_curve.csv
-│       ├── calibration_curve.csv
-│       └── threshold_analysis.csv
-└── gradcam/
-    └── [CASE_TYPE]_[LABEL]_[PROBABILITY]_[HASH].png
+---
+
+## 📊 Metrics Computed
+
+| Category | Metrics |
+|---|---|
+| Classification | Accuracy, Balanced Accuracy, Sensitivity, Specificity, Precision, NPV, F1, MCC, Cohen's κ |
+| Error Rates | FPR, FNR, TN, FP, FN, TP |
+| Curves | AUROC, AUPRC, ROC, PR, Calibration, Threshold Analysis |
+| Calibration | Brier Score, NLL, Expected Calibration Error, Temperature Scaling |
+| Efficiency | Parameter count, inference latency, throughput, peak CUDA memory |
+| Statistics | Bootstrap 95% CIs, paired McNemar test, paired bootstrap AUROC difference |
+
+---
+
+## 🛡️ Scientific Safeguards
+
+- Test split **never** used for early stopping, calibration, or threshold selection
+- SHA-256 duplicate detection — cross-label conflicts halt the pipeline
+- TDA standardizer fitted on **training data only** — no val/test leakage
+- Teacher checkpoint **mandatory** for KD — random-teacher distillation is blocked
+- Cache signatures prevent mismatched topology configs from sharing features
+- Historical records (`research_records/`) stored separately from generated outputs
+
+---
+
+## 📋 Pre-Submission Reproduction Checklist
+
+- [ ] `artifacts/split_manifest.csv` (frozen split)
+- [ ] `resolved_config.yaml` for each reported run
+- [ ] Teacher + student `.pt` checkpoints
+- [ ] Topology cache signature + standardizer (`.npz`)
+- [ ] `environment.json` + `pip_freeze.txt`
+- [ ] All metric JSON files + bootstrap CI files
+- [ ] `test_predictions.csv` with per-image SHA-256 hashes
+- [ ] Calibration temperature + selected decision threshold
+- [ ] All curve PNGs + underlying CSVs
+- [ ] Grad-CAM cases (correct, errors, uncertain)
+- [ ] Multi-seed mean ± std + paired significance test results
+
+---
+
+## 📦 Dependencies
+
+| Package | Version | Purpose |
+|---|---|---|
+| `torch` | ≥ 2.2 | Deep learning framework |
+| `torchvision` | ≥ 0.17 | Image transforms, EfficientNet |
+| `gudhi` | ≥ 3.9 | Cubical persistent homology |
+| `numpy` | ≥ 1.26 | Numerical arrays |
+| `pandas` | ≥ 2.1 | Metrics, manifests, CSVs |
+| `scikit-learn` | ≥ 1.4 | Stratified splits, bootstrap |
+| `scipy` | ≥ 1.11 | Statistical tests |
+| `matplotlib` | ≥ 3.8 | All figures |
+| `opencv-python-headless` | ≥ 4.9 | Image I/O |
+| `tensorboard` | ≥ 2.16 | Training visualization |
+| `tqdm` | ≥ 4.66 | Progress bars |
+| `psutil` | ≥ 5.9 | Resource monitoring |
+
+---
+
+## 📚 References
+
+1. Kundu et al. (2021). *COVID-19 detection from lung CT-scans using a fuzzy integral-based CNN ensemble*. Computers in Biology and Medicine, 138, 104895.
+2. Hinton, Vinyals & Dean (2015). *Distilling the Knowledge in a Neural Network*.
+3. Hou et al. (2021). *Coordinate Attention for Efficient Mobile Network Design*. CVPR.
+4. Foret et al. (2021). *Sharpness-Aware Minimization for Efficiently Improving Generalization*. ICLR.
+5. Oquab et al. (2023). *DINOv2: Learning Robust Visual Features without Supervision*.
+6. Khosla et al. (2020). *Supervised Contrastive Learning*. NeurIPS.
+7. Edelsbrunner et al. (2002). *Topological Persistence and Simplification*.
+8. GUDHI Project — Cubical Complexes and Persistent Homology documentation.
+
+---
+
+## ✍️ Citation
+
+```bibtex
+@software{ali2026topokd,
+  title   = {TopoLite-KD: Topology-Aware Knowledge Distillation for COVID-19 CT Classification},
+  author  = {Ali, Ibadat and Ali, Shawaiz and Abdullah, Muhammad and Usama, Muhammad},
+  year    = {2026},
+  version = {1.0.0},
+  license = {Apache-2.0},
+  url     = {https://github.com/Ibadat-Ali86/covid_19_fuzzy_integral_CTSCAN},
+  note    = {Kaggle experiment: https://www.kaggle.com/code/ibadatali/topokd-research-finalv}
+}
 ```
 
-## 8. Quantitative evaluation
+---
 
-The package computes and records:
+## 📄 License
 
-- accuracy and balanced accuracy;
-- sensitivity/recall and specificity;
-- precision/PPV and negative predictive value;
-- F1, MCC, and Cohen’s kappa;
-- false-positive and false-negative rates;
-- AUROC and AUPRC;
-- Brier score, negative log-likelihood, and expected calibration error;
-- TN, FP, FN, and TP counts;
-- stratified bootstrap confidence intervals;
-- exact McNemar testing for paired classifications;
-- paired bootstrap AUROC differences;
-- parameter count, latency, throughput, and peak CUDA memory.
+Apache License 2.0 — see [LICENSE](LICENSE).
 
-Profile a model:
+---
 
-```bash
-python scripts/profile_model.py --config configs/topolite_kd.yaml --device cuda
-```
+<div align="center">
 
-Compare aligned frozen-test predictions:
+**GIFT University · Department of Computer Science · Gujranwala, Pakistan**
 
-```bash
-python scripts/compare_models.py \
-  --model-a results/topolite_kd/seed_42/predictions/test_predictions.csv \
-  --model-b results/baseline_cnn_tda/seed_42/predictions/test_predictions.csv \
-  --name-a TopoLite-KD \
-  --name-b CNN-TDA
-```
+[![Kaggle](https://img.shields.io/badge/Kaggle-Open%20Live%20Notebook-20BEFF?style=flat-square&logo=kaggle&logoColor=white)](https://www.kaggle.com/code/ibadatali/topokd-research-finalv)
 
-## 9. Scientific safeguards
-
-- Test data are not used for early stopping, calibration, threshold selection, or hyperparameter choice.
-- Exact duplicate SHA-256 conflicts across labels stop the pipeline.
-- Patient-level leakage is checked when patient identifiers are available.
-- TDA standardization is fitted using training data only.
-- Every prediction retains its source path and SHA-256 hash.
-- Teacher checkpoints are mandatory for KD.
-- Cache signatures prevent incompatible topology configurations from sharing features.
-- Existing non-empty run directories are protected unless resume behavior is explicit.
-- Historical metrics are stored separately from generated outputs.
-- A runnable reconstruction is not described as an exact historical reproduction without the archived manifest, checkpoints, resolved config, and environment.
-
-## 10. Reproduction checklist
-
-Before reporting a result in a paper, archive:
-
-- [ ] immutable `split_manifest.csv`;
-- [ ] dataset name/version and acquisition date;
-- [ ] exact duplicate-removal report;
-- [ ] patient-ID extraction rule or an explicit statement that the split is image-level;
-- [ ] `resolved_config.yaml`;
-- [ ] teacher and student checkpoints;
-- [ ] topology cache signature and standardizer;
-- [ ] package versions and hardware capture;
-- [ ] validation and test prediction CSV files;
-- [ ] calibration temperature and selected threshold;
-- [ ] all metric JSON files and confidence intervals;
-- [ ] all curves and underlying curve CSV files;
-- [ ] Grad-CAM cases including errors and uncertain examples;
-- [ ] multi-seed mean, standard deviation, and paired significance analysis.
-
-## 11. Validation, tests, and documentation
-
-```bash
-python scripts/validate_install.py \
-  --config configs/topolite_kd.yaml \
-  --set data.image_size=32
-
-pytest
-mkdocs build --strict
-```
-
-Audit required paper artifacts, then package a completed run with checksums:
-
-```bash
-python scripts/audit_run.py --run-dir results/topolite_kd/seed_42 --require-gradcam
-python scripts/package_run.py \
-  --run-dir results/topolite_kd/seed_42
-```
-
-Review `CODEBASE_AUDIT.md` before making historical or novelty claims.
-
-## 12. Historical result records
-
-Author-supplied records are stored in:
-
-```text
-research_records/historical_results.yaml
-```
-
-They document the successful TopoLite-KD run, the negative TopoLite-MSF-KD experiment, and the slice-level TopoFM result. They are provenance records—not generated evidence.
-
-## 13. References
-
-1. Kundu, R., Singh, P. K., Mirjalili, S., & Sarkar, R. (2021). *COVID-19 detection from lung CT-scans using a fuzzy integral-based CNN ensemble*. Computers in Biology and Medicine, 138, 104895.
-2. Hinton, G., Vinyals, O., & Dean, J. (2015). *Distilling the Knowledge in a Neural Network*.
-3. Hou, Q., Zhou, D., & Feng, J. (2021). *Coordinate Attention for Efficient Mobile Network Design*. CVPR.
-4. Foret, P., Kleiner, A., Mobahi, H., & Neyshabur, B. (2021). *Sharpness-Aware Minimization for Efficiently Improving Generalization*. ICLR.
-5. Oquab, M. et al. (2023). *DINOv2: Learning Robust Visual Features without Supervision*.
-6. Khosla, P. et al. (2020). *Supervised Contrastive Learning*. NeurIPS.
-7. Edelsbrunner, H., Letscher, D., & Zomorodian, A. (2002). *Topological Persistence and Simplification*.
-8. GUDHI Project documentation for cubical complexes and persistent homology.
-
-## License
-
-Apache License 2.0. See `LICENSE`.
+</div>
